@@ -17,7 +17,8 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 
-    return true;
+    if (system(cmd)!=-1) return true;
+    else return false;
 }
 
 /**
@@ -48,7 +49,7 @@ bool do_exec(int count, ...)
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
     command[count] = command[count];
-
+    va_end(args);
 /*
  * TODO:
  *   Execute a system command by calling fork, execv(),
@@ -58,8 +59,27 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    pid_t pid = fork();
+    
+    if (pid==-1){
+    	perror("Error fork\n");
+    	return false;
+    }
 
-    va_end(args);
+    else if (pid==0){ //code executed by child
+    	execv(command[0],command);
+	perror("execv failed in child process\n"); //if execv returns, it failed
+	exit(EXIT_FAILURE);
+    }
+
+    else { //code executed by parent
+    	int status;
+	waitpid(pid,&status,0);
+	if (WEXITSTATUS(status)==0){return true;}
+	else {return false;}
+    }
+
+    
 
     return true;
 }
@@ -83,7 +103,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
     command[count] = command[count];
-
+    va_end(args);
 
 /*
  * TODO
@@ -92,8 +112,35 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    // Source - https://stackoverflow.com/a/13784315
+// Posted by tmyklebu, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-04-02, License - CC BY-SA 3.0
+    
+    pid_t pid = fork();
+    int fd = open(outputfile, O_WRONLY | O_TRUNC | O_CREAT, 0664);
+    
+    if (fd<0) {perror("Error opening file\n"); exit(EXIT_FAILURE);}
 
-    va_end(args);
+    if (pid==-1) {
+	perror("Error fork\n");
+	return false;
+     }
+
+    else if (pid==0){
+	if(dup2(fd,1)<0){ perror("Error dup2\n"); exit(EXIT_FAILURE);}
+        close(fd);
+	execv(command[0],command);
+	perror("execv failed in child process\n");
+	exit(EXIT_FAILURE);
+    }
+
+    else {
+	close(fd);
+	int status;
+	waitpid(pid,&status,0);
+	if(WEXITSTATUS(status)==0){return true;}
+	else {return false;}
+    }
 
     return true;
 }
