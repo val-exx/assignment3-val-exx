@@ -59,6 +59,7 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    fflush(stdout);
     pid_t pid = fork();
     
     if (pid==-1){
@@ -115,7 +116,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     // Source - https://stackoverflow.com/a/13784315
 // Posted by tmyklebu, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-04-02, License - CC BY-SA 3.0
-    
+    fflush(stdout);
     pid_t pid = fork();
     int fd = open(outputfile, O_WRONLY | O_TRUNC | O_CREAT, 0664);
     
